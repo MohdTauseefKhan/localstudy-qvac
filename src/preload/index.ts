@@ -3,18 +3,19 @@ import { contextBridge, ipcRenderer } from 'electron'
 contextBridge.exposeInMainWorld('qvacAPI', {
   loadModel: (): Promise<string> => ipcRenderer.invoke('load-model'),
 
-  infer: (history: { role: 'user' | 'assistant'; content: string }[]): Promise<void> =>
+  infer: (history: { role: string; content: string }[]): Promise<void> =>
     ipcRenderer.invoke('infer', history),
 
   onCompletionStream: (cb: (token: string) => void): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, token: string) => {
+    const listener = (_event: Electron.IpcRendererEvent, token: string) => {
       cb(token)
     }
 
-    ipcRenderer.on('completion-stream', handler)
+    ipcRenderer.on('completion-stream', listener)
 
+    // Return cleanup function
     return () => {
-      ipcRenderer.removeListener('completion-stream', handler)
+      ipcRenderer.removeListener('completion-stream', listener)
     }
   },
 
