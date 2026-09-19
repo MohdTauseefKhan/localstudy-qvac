@@ -1,22 +1,22 @@
-import { contextBridge } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
+import { contextBridge, ipcRenderer } from 'electron'
 
-// Custom APIs for renderer
-const api = {}
+contextBridge.exposeInMainWorld('qvacAPI', {
+  loadModel: (): Promise<string> => ipcRenderer.invoke('load-model'),
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
-if (process.contextIsolated) {
-  try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
-  } catch (error) {
-    console.error(error)
-  }
-} else {
-  // @ts-ignore (define in dts)
-  window.electron = electronAPI
-  // @ts-ignore (define in dts)
-  window.api = api
-}
+  infer: (history: { role: 'user' | 'assistant'; content: string }[]): Promise<void> =>
+    ipcRenderer.invoke('infer', history),
+
+  onCompletionStream: (cb: (token: string) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, token: string) => {
+      cb(token)
+    }
+
+    ipcRenderer.on('completion-stream', handler)
+
+    return () => {
+      ipcRenderer.removeListener('completion-stream', handler)
+    }
+  },
+
+  unloadModel: (): Promise<string> => ipcRenderer.invoke('unload-model')
+})
