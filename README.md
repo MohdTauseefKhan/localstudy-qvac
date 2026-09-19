@@ -54,7 +54,7 @@ Before running the project, make sure you have:
 
 Clone the repository:
 
-git clone YOUR_GITHUB_REPOSITORY_URL
+git clone https://github.com/MohdTauseefKhan/localstudy-qvac.git
 
 Go into the project directory:
 
